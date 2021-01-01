@@ -8,11 +8,11 @@ setup(
     author="Carlos Vicente",
     author_email="cvicente@gmail.com",
     url="https://github.com/cvicente/simon_says",
-    license="GPL",
+    license="GPL v3.0",
     classifiers=(
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: Implementation :: CPython",
     ),
     packages=find_packages(exclude=["tests", "tests.*"]),
@@ -22,9 +22,13 @@ setup(
     # pip install consults this list by specifying . in requirements.txt
     install_requires=[
         "configparser",
+        "falcon",
+        "gunicorn",
+        "httpie",
         "pycall",
         "pydantic",
         "pyyaml",
+        "requests",
     ],
     extras_require={
         "dev": ["mock", "pytest", "pytest-mock", "tox", "tox-pyenv"],

@@ -1,17 +1,14 @@
 import datetime
+import json
 import logging
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
 from simon_says.ademco import CODES
 from simon_says.config import ConfigLoader
-
-# Default directories to read files from and move them to on the Asterisk instance
-DEFAULT_EVENTS_SRC = "/var/spool/asterisk/alarm_events"
-DEFAULT_EVENTS_DST = "/var/spool/asterisk/alarm_events_processed"
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +17,7 @@ class AlarmEvent(BaseModel):
     """ Represents an alarm event """
 
     uid: str
-    timestamp: datetime.datetime
+    timestamp: float
     extension: str
     account: int
     msg_type: int
@@ -34,39 +31,77 @@ class AlarmEvent(BaseModel):
     checksum: int
     status: Optional[str]
 
+    def to_dict(self) -> Dict[str, Any]:
+        """ Convert to Dict """
+        return self.__dict__
 
-class EventHandler:
+    def to_json(self) -> str:
+        """ Convert event to JSON """
+        return json.dumps(self.to_dict())
+
+
+class EventQueue:
     """
-    * Parses Asterisk's AlarmReceiver events
-    * Instantiates AlarmEvent objects and keeps them in memory
+    A queue of alarm events
+    """
+
+    def __init__(self) -> None:
+        self._events_by_uid: Dict[str, AlarmEvent] = {}
+
+    @property
+    def events(self) -> List[AlarmEvent]:
+        """ List events in queue, in order """
+        return sorted(self._events_by_uid.values(), key=lambda x: x.timestamp)
+
+    @property
+    def events_as_json(self) -> str:
+        return json.dumps([e.to_dict() for e in self.events])
+
+    def add(self, event: AlarmEvent) -> None:
+        """ Add an event """
+
+        if event.uid in self._events_by_uid:
+            raise ValueError(f"Event with uid {event.uid} already in queue")
+
+        self._events_by_uid[event.uid] = event
+
+    def delete(self, uid: str) -> None:
+        """ Delete an event given its UID """
+
+        del self._events_by_uid[uid]
+
+    def get(self, uid: str) -> Optional[AlarmEvent]:
+        """ Get AlarmEvent by UID """
+
+        return self._events_by_uid.get(uid)
+
+
+class EventParser:
+    """
+    Parse Asterisk's AlarmReceiver events
     """
 
     def __init__(
         self,
         config_path: Path = None,
-        events_src_dir: Path = None,
-        events_dst_dir: Path = None,
+        src_dir: Path = None,
+        dst_dir: Path = None,
         move_files: bool = True,
     ) -> None:
+
         self.cfg = ConfigLoader(config_path).config if config_path else ConfigLoader().config
+        self.src_dir = src_dir or Path(self.cfg.get("events", "src_dir"))
+        self.dst_dir = dst_dir or Path(self.cfg.get("events", "dst_dir"))
 
-        self.events_src_dir = events_src_dir or self.cfg.get("events_src_dir", Path(DEFAULT_EVENTS_SRC))
-        self.events_dst_dir = events_dst_dir or self.cfg.get("events_dst_dir", Path(DEFAULT_EVENTS_DST))
-
-        for d in (self.events_src_dir, self.events_dst_dir):
-            if not d.is_dir():
-                raise RuntimeError(f"Required directory {d} does not exist")
+        for p in (self.src_dir, self.dst_dir):
+            if not p.is_dir():
+                raise RuntimeError(f"Required directory {p} does not exist")
 
         self.move_files = move_files
-        self._events: List[AlarmEvent] = []
 
-    @property
-    def events(self):
-        return sorted(self._events, key=lambda x: x.timestamp)
-
-    def parse_file(self, path: Path) -> Optional[AlarmEvent]:
+    def parse_file(self, path: Path) -> Optional[Dict[str, Any]]:
         """
-        Parse an event file and convert it to an AlarmEvent object.
+        Parse an event file
         See: https://www.voip-info.org/asterisk-cmd-alarmreceiver/
 
         Notice that this code expects Asterisk's EventHandler config to be set with:
@@ -111,7 +146,7 @@ class EventHandler:
                     event_data = {
                         "uid": uid,
                         "timestamp": timestamp,
-                        "account": int(account),
+                        "account": account,
                         "msg_type": msg_type,
                         "qualifier": qualifier,
                         "code": code,
@@ -124,13 +159,51 @@ class EventHandler:
                     self._set_zone_or_user(event_data, zone_or_user)
 
                     logger.debug("Event data: %s", event_data)
-                    return AlarmEvent(**event_data)
+                    return event_data
 
         logger.warning("No events found in file %s", path)
+
+    def move_file(self, src: Path) -> None:
+        """ Move event file to processed folder """
+
+        dst = self.dst_dir / src.name
+        logger.debug("Moving file %s to %s", src, dst)
+        src.rename(dst)
+
+    def process_files(self) -> List[Dict[str, Any]]:
+        """
+        Parse all event files available in spool directory.
+        Move each parsed file to another directory
+        """
+        results = []
+        for file in self.src_dir.glob("event-*"):
+            if file.is_file():
+                event_data = self.parse_file(file)
+                if event_data:
+                    results.append(event_data)
+                if self.move_files:
+                    self.move_file(file)
+        return results
+
+    @staticmethod
+    def _get_uid_from_filename(filename: str) -> str:
+        """ Extract unique ID from filename """
+
+        # e.g. event-1IkVo1 -> 1IkVo1
+        return filename.replace("event-", "")
+
+    @staticmethod
+    def _parse_timestamp_str(timestamp: str) -> float:
+        """ Convert the timestamp coming from Asterisk into a datetime object """
+        # e.g
+        # Sat Dec 26, 2020 @ 16:16:29 UTC => datetime.datetime(2020, 12, 26, 16, 16, 29)
+        return datetime.datetime.strptime(timestamp, "%a %b %d, %Y @ %H:%M:%S %Z").timestamp()
 
     def _set_zone_or_user(self, event_data: Dict, zone_or_user: str) -> None:
         """ Set either zone or user fields """
 
+        # The Ademco standard reuses the 6th field for either zone or user identification.
+        # We look at what each code data type is and set the fields accordingly
         code = str(event_data["code"])
         data_type = CODES[code]["type"]
         if data_type == "zone":
@@ -147,39 +220,3 @@ class EventHandler:
             event_data["zone_name"] = None
         else:
             raise ValueError(f"Invalid data type {data_type}")
-
-    def move_file(self, src: Path) -> None:
-        """ Move event file to processed folder """
-
-        if not self.move_files:
-            return
-
-        dst = self.events_dst_dir / src.name
-        logger.debug("Moving file %s to %s", src, dst)
-        src.rename(dst)
-
-    def process_files(self) -> None:
-        """
-        Parse all event files available in spool directory.
-        Move each parsed file to another directory
-        """
-        for file in self.events_src_dir.glob("*"):
-            if file.is_file():
-                event = self.parse_file(file)
-                if event:
-                    self._events.append(event)
-                self.move_file(file)
-
-    @staticmethod
-    def _get_uid_from_filename(filename: str) -> str:
-        """ Extract unique ID from filename """
-
-        # e.g. event-1IkVo1 -> 1IkVo1
-        return filename.replace("event-", "")
-
-    @staticmethod
-    def _parse_timestamp_str(timestamp: str) -> datetime.datetime:
-        """ Convert the timestamp coming from Asterisk into a datetime object """
-        # e.g
-        # Sat Dec 26, 2020 @ 16:16:29 UTC => datetime.datetime(2020, 12, 26, 16, 16, 29)
-        return datetime.datetime.strptime(timestamp, "%a %b %d, %Y @ %H:%M:%S %Z")

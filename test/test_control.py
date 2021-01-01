@@ -1,13 +1,3 @@
-import pytest
-
-from simon_says.control import Controller
-
-
-@pytest.fixture
-def test_controller(tmp_path):
-    return Controller(access_code="123", extension="100", spool_dir=tmp_path, asterisk_user=None)
-
-
 def test_send_disarm_command(test_controller, tmp_path):
     test_controller.send_command("disarm")
     call_file = next(tmp_path.iterdir())
@@ -19,6 +9,7 @@ def test_send_disarm_command(test_controller, tmp_path):
     assert lines[4] == "Application: SendDTMF"
     assert lines[5] == "Data: ww123w1w9"
     assert lines[6] == "Archive: yes"
+    call_file.unlink()
 
 
 def test_arm_doors_and_windows_no_delay(test_controller, tmp_path):
@@ -26,3 +17,4 @@ def test_arm_doors_and_windows_no_delay(test_controller, tmp_path):
     call_file = next(tmp_path.iterdir())
     lines = call_file.read_text().splitlines()
     assert lines[5] == "Data: ww123w2w2w9"
+    call_file.unlink()

@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+
+import argparse
+import time
+
+from simon_says.client import Client
+from simon_says.events import EventParser
+from simon_says.log import configure_logging
+
+
+def parse_args() -> argparse.Namespace:
+    """
+    Parse command line arguments
+    """
+    parser = argparse.ArgumentParser(description="Alarm Events Handler")
+    parser.add_argument("-l", "--log-level", default="INFO", choices=("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"))
+    parser.add_argument("-m", "--monitor-files", action="store_true", help="Monitor spool directory periodically")
+    parser.add_argument("-i", "--interval", default=5, help="Seconds to wait before re-parsing files")
+    parser.add_argument("-u", "--url", default="http://localhost:8000", help="API URL")
+    return parser.parse_args()
+
+
+def parse_and_submit(event_parser: EventParser, client: Client) -> None:
+    """ Parse spooled files and submit them to the API """
+
+    records = event_parser.process_files()
+    for rec in records:
+        client.add_event(**rec)
+
+
+if __name__ == "__main__":
+
+    args = parse_args()
+    configure_logging(args.log_level)
+    parser = EventParser()
+    client = Client(args.url)
+    if args.monitor_files:
+        while True:
+            parse_and_submit(event_parser=parser, client=client)
+            time.sleep(args.interval)
+    else:
+        parse_and_submit(event_parser=parser, client=client)

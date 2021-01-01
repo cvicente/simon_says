@@ -1,22 +1,9 @@
 import logging
+from pathlib import Path
 
 from pycall import Application, Call, CallFile
 
-# How long to wait for the alarm to answer
-# Unfortunately it has to ring 10 times, which is roughly 1 minute.
-DEFAULT_WAIT_TIME = 65
-
-# Wait 10 seconds between retries
-DEFAULT_RETRY_TIME = 10
-
-# Retry twice
-DEFAULT_MAX_RETRIES = 2
-
-# Default user that will own the call files
-DEFAULT_ASTERISK_USER = "asterisk"
-
-# Default spool directory
-DEFAULT_SPOOL_DIR = "/var/spool/asterisk/outgoing"
+from simon_says.config import ConfigLoader
 
 # Map relevant actions to DTMF sequences
 # See user manual at https://static.interlogix.com/library/466-2266_rev_f.pdf
@@ -39,22 +26,27 @@ class Controller:
 
     def __init__(
         self,
-        access_code: str,
-        extension: str,
-        wait_time: int = DEFAULT_WAIT_TIME,
-        retry_time: int = DEFAULT_RETRY_TIME,
-        max_retries: int = DEFAULT_MAX_RETRIES,
-        asterisk_user: str = DEFAULT_ASTERISK_USER,
-        spool_dir: str = DEFAULT_SPOOL_DIR,
+        config_path: Path = None,
+        access_code: str = None,
+        extension: str = None,
+        wait_time: int = None,
+        retry_time: int = None,
+        max_retries: int = None,
+        asterisk_user: str = None,
+        spool_dir: Path = None,
     ) -> None:
+        self.cfg = ConfigLoader(config_path).config if config_path else ConfigLoader().config
 
-        self.access_code = access_code
-        self.extension = extension
-        self.wait_time = wait_time
-        self.retry_time = retry_time
-        self.max_retries = max_retries
-        self.asterisk_user = asterisk_user
-        self.spool_dir = spool_dir
+        self.access_code = access_code or self.cfg.get("control", "access_code")
+        self.extension = extension or self.cfg.get("control", "extension")
+        self.wait_time = wait_time or int(self.cfg.get("control", "wait_time"))
+        self.retry_time = retry_time or int(self.cfg.get("control", "retry_time"))
+        self.max_retries = max_retries or int(self.cfg.get("control", "max_retries"))
+        self.asterisk_user = asterisk_user or self.cfg.get("control", "asterisk_user")
+        self.spool_dir = spool_dir or Path(self.cfg.get("control", "spool_dir"))
+
+        if not self.spool_dir.is_dir():
+            raise ValueError(f"spool_dir {self.spool_dir} is not a valid directory")
 
     def _build_dtmf_sequence(self, action: str) -> str:
         """

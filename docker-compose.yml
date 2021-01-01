@@ -1,0 +1,16 @@
+---
+
+version: "3.9"
+services:
+  simon_says:
+    container_name: simon_says
+    build:
+      context: .
+    restart: always
+    expose:
+      - "5060"
+      - "8000"
+    volumes:
+      - ./config.ini:/etc/simon_says.ini
+      - ./asterisk/etc:/etc/asterisk
+    network_mode: host
