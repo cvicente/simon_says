@@ -40,7 +40,7 @@ class Client(object):
 
     def add_event(self, data: Dict, timeout: int = DEFAULT_TIMEOUT) -> str:
         """ Add a single event """
-        r = self._session.get(self._url + "/events", data=data, timeout=timeout)
+        r = self._session.post(self._url + "/events", headers={"content-type": "application/json"}, data=data, timeout=timeout)
         if r.status_code == 201:
             return r.text
         else:
