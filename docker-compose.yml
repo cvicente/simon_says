@@ -1,6 +1,6 @@
 ---
 
-version: "3.9"
+version: "3.3"
 services:
   simon_says:
     container_name: simon_says
@@ -12,5 +12,5 @@ services:
       - "8000"
     volumes:
       - ./config.ini:/etc/simon_says.ini
-      - ./asterisk/etc:/etc/asterisk
+      - ./asterisk_configs:/etc/asterisk
     network_mode: host
