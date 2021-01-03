@@ -15,7 +15,7 @@ class Client(object):
 
     def arm_home(self, timeout: int = DEFAULT_TIMEOUT) -> str:
         r = self._session.post(
-            self._url + "/command", data={"action": "arm_doors_and_windows_no_delay"}, timeout=timeout
+            self._url + "/command", json={"action": "arm_doors_and_windows_no_delay"}, timeout=timeout
         )
         if r.status_code == 202:
             return r.text
@@ -24,7 +24,7 @@ class Client(object):
 
     def arm_away(self, timeout: int = DEFAULT_TIMEOUT) -> str:
         r = self._session.post(
-            self._url + "/command", data={"action": "arm_doors_and_windows_and_motion_sensors"}, timeout=timeout
+            self._url + "/command", json={"action": "arm_doors_and_windows_and_motion_sensors"}, timeout=timeout
         )
         if r.status_code == 202:
             return r.text
@@ -32,7 +32,7 @@ class Client(object):
             raise RuntimeError(f"Error code: {r.status_code}, content: {r.text}")
 
     def disarm(self, timeout: int = DEFAULT_TIMEOUT) -> str:
-        r = self._session.post(self._url + "/command", data={"action": "disarm"}, timeout=timeout)
+        r = self._session.post(self._url + "/command", json={"action": "disarm"}, timeout=timeout)
         if r.status_code == 202:
             return r.text
         else:
@@ -40,7 +40,7 @@ class Client(object):
 
     def add_event(self, data: Dict, timeout: int = DEFAULT_TIMEOUT) -> str:
         """ Add a single event """
-        r = self._session.post(self._url + "/events", headers={"content-type": "application/json"}, data=data, timeout=timeout)
+        r = self._session.post(self._url + "/events", json=data, timeout=timeout)
         if r.status_code == 201:
             return r.text
         else:

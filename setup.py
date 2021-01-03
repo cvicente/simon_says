@@ -31,7 +31,8 @@ setup(
         "requests",
     ],
     extras_require={
-        "dev": ["mock", "pytest", "pytest-mock", "tox", "tox-pyenv"],
+        "dev": ["mock", "pytest", "pytest-localserver", "pytest-mock", "tox", "tox-pyenv"],
         "lint": ["black", "flake8", "isort"],
     },
+    scripts=["bin/simon_event_handler", "bin/simon_event_handler"]
 )
