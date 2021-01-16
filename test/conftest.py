@@ -41,5 +41,5 @@ def test_controller(tmp_path, test_config_path):
         access_code="123",
         extension="100",
         spool_dir=tmp_path,
-        asterisk_user=os.environ["USER"],
+        asterisk_user=os.environ.get("USER", None),
     )

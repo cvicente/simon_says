@@ -3,6 +3,7 @@ from pytest_localserver.http import WSGIServer
 
 from simon_says.app import create_app
 from simon_says.client import Client
+from simon_says.helpers import redis_present
 
 
 @pytest.fixture
@@ -18,6 +19,7 @@ def test_client(test_server):
     return Client(test_server.url)
 
 
+@pytest.mark.skipif(not redis_present(), reason="redis not present")
 def test_client_add_and_get_events(test_client, test_parsed_events):
     uid = "12abcd"
     for rec in test_parsed_events:
@@ -29,6 +31,11 @@ def test_client_add_and_get_events(test_client, test_parsed_events):
 
     event1 = test_client.get_event(uid)
     assert event1["uid"] == uid
+
+
+def test_client_get_state(test_client):
+    res = test_client.get_state()
+    assert res == '{"state": "DISARMED"}'
 
 
 def test_client_disarm(test_client):

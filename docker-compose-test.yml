@@ -7,17 +7,14 @@ services:
     restart: always
     expose:
       - 6379
-  simon_says:
-    container_name: simon_says
+    network_mode: host
+  simon_says_test:
+    container_name: simon_says_test
     build:
       context: .
+      dockerfile: Dockerfile.test
+    command: tox -v -e lint,py37
     depends_on:
       - redis
     restart: always
-    expose:
-      - "5060"
-      - "8000"
-    volumes:
-      - ./config.ini:/etc/simon_says.ini
-      - ./asterisk_configs:/etc/asterisk
     network_mode: host

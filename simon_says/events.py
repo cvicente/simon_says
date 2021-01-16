@@ -1,3 +1,4 @@
+import configparser
 import datetime
 import json
 import logging
@@ -5,12 +6,16 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import redis
 from pydantic import BaseModel
 
-from simon_says.ademco import CODES
+from simon_says.ademco import CODES, EVENT_CATEGORIES
 from simon_says.config import ConfigLoader
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_REDIS_HOST = "localhost"
+DEFAULT_REDIS_PORT = 6379
 
 
 class AlarmEvent(BaseModel):
@@ -24,9 +29,10 @@ class AlarmEvent(BaseModel):
     qualifier: int
     code: int
     code_description: str
+    category: str
     partition: int
-    zone: Optional[int]
-    zone_name: Optional[str]
+    sensor: Optional[int]
+    sensor_name: Optional[str]
     user: Optional[int]
     checksum: int
     status: Optional[str]
@@ -40,40 +46,72 @@ class AlarmEvent(BaseModel):
         return json.dumps(self.to_dict())
 
 
-class EventQueue:
+class EventStore:
     """
-    A queue of alarm events
+    A store of alarm events. Uses Redis for persistence.
     """
 
-    def __init__(self) -> None:
-        self._events_by_uid: Dict[str, AlarmEvent] = {}
+    def __init__(self, redis_host: str = DEFAULT_REDIS_HOST, redis_port: int = DEFAULT_REDIS_PORT) -> None:
+        self._namespace = "event"
 
-    @property
-    def events(self) -> List[AlarmEvent]:
-        """ List events in queue, in order """
-        return sorted(self._events_by_uid.values(), key=lambda x: x.timestamp)
-
-    @property
-    def events_as_json(self) -> str:
-        return json.dumps([e.to_dict() for e in self.events])
+        logger.debug("Instantiating Redis client at %s:%s", redis_host, redis_port)
+        self._redis = redis.Redis(host=redis_host, port=redis_port, db=0)
 
     def add(self, event: AlarmEvent) -> None:
         """ Add an event """
 
-        if event.uid in self._events_by_uid:
-            raise ValueError(f"Event with uid {event.uid} already in queue")
+        if self.get(event.uid):
+            raise ValueError(f"Event with uid {event.uid} already exists")
 
-        self._events_by_uid[event.uid] = event
+        logger.debug("Adding AlarmEvent %s to store", event.uid)
+        self._redis.execute_command("JSON.SET", self.obj_key(event.uid), ".", event.to_json())
 
     def delete(self, uid: str) -> None:
         """ Delete an event given its UID """
 
-        del self._events_by_uid[uid]
+        logger.debug("Deleting event %s", uid)
+        self._redis.execute_command("JSON.DEL", self.obj_key(uid))
 
     def get(self, uid: str) -> Optional[AlarmEvent]:
         """ Get AlarmEvent by UID """
 
-        return self._events_by_uid.get(uid)
+        logger.debug("Getting event %s from store", uid)
+
+        j_str = self._redis.execute_command("JSON.GET", self.obj_key(uid))
+        if not j_str:
+            logger.error("Event %s not found in store", uid)
+            return
+
+        obj_data = json.loads(j_str)
+        return AlarmEvent(**obj_data)
+
+    def get_all_keys(self) -> List[str]:
+        """ Get all keys in our namespace """
+
+        logger.debug("Retrieving all %s keys from store", self._namespace)
+        return self._redis.execute_command(f"KEYS {self._namespace}*")
+
+    def obj_key(self, uid: str) -> str:
+        """ Return the key string used to store and retrieve event objects """
+
+        return f"{self._namespace}:{uid}"
+
+    def get_events(self) -> List[AlarmEvent]:
+        """ Get all events in store, in chronological order """
+
+        logger.debug("Retrieving all events from store")
+        res = []
+        for key in self.get_all_keys():
+            obj_data = json.loads(self._redis.execute_command("JSON.GET", key))
+            res.append(AlarmEvent(**obj_data))
+
+        return sorted(res, key=lambda x: x.timestamp)
+
+    def events_as_json(self) -> str:
+        """ Get all events as a list, in JSON format """
+
+        logger.debug("Retrieving all events, in JSON format")
+        return json.dumps([e.to_dict() for e in self.get_events()])
 
 
 class EventParser:
@@ -139,9 +177,7 @@ class EventParser:
                 if fields:
                     logger.debug("Event line found: %s", line)
 
-                    account, msg_type, qualifier, code, partition, zone_or_user, checksum = fields[0]
-
-                    code_description = CODES[code]["name"]
+                    account, msg_type, qualifier, code, partition, sensor_or_user, checksum = fields[0]
 
                     event_data = {
                         "uid": uid,
@@ -149,14 +185,15 @@ class EventParser:
                         "account": account,
                         "msg_type": msg_type,
                         "qualifier": qualifier,
-                        "code": code,
-                        "code_description": code_description,
+                        "code": int(code),
+                        "code_description": CODES[code]["name"],
+                        "category": self._get_event_category(int(code)),
                         "partition": partition,
                         "checksum": checksum,
                         "extension": extension,
                     }
 
-                    self._set_zone_or_user(event_data, zone_or_user)
+                    self._set_sensor_or_user(event_data, int(sensor_or_user))
 
                     logger.debug("Event data: %s", event_data)
                     return event_data
@@ -199,24 +236,38 @@ class EventParser:
         # Sat Dec 26, 2020 @ 16:16:29 UTC => datetime.datetime(2020, 12, 26, 16, 16, 29)
         return datetime.datetime.strptime(timestamp, "%a %b %d, %Y @ %H:%M:%S %Z").timestamp()
 
-    def _set_zone_or_user(self, event_data: Dict, zone_or_user: str) -> None:
-        """ Set either zone or user fields """
+    def _set_sensor_or_user(self, event_data: Dict, sensor_or_user: int) -> None:
+        """ Set either sensor or user fields """
 
-        # The Ademco standard reuses the 6th field for either zone or user identification.
+        # The Ademco standard reuses the 6th field for either sensor or user identification.
         # We look at what each code data type is and set the fields accordingly
         code = str(event_data["code"])
         data_type = CODES[code]["type"]
         if data_type == "zone":
-            event_data["zone"] = zone_or_user
-            # If there are configured zone names, include the name
-            if "zones" in self.cfg and zone_or_user in self.cfg["zones"]:
-                event_data["zone_name"] = self.cfg["zones"][zone_or_user]
-            else:
-                event_data["zone_name"] = None
+            event_data["sensor"] = sensor_or_user
+            # If there are configured sensor names, include the name
+            try:
+                event_data["sensor_name"] = self.cfg.get("sensors", str(sensor_or_user))
+            except (KeyError, configparser.NoOptionError):
+                logger.debug("Sensor %s not found in config", str(sensor_or_user))
+                event_data["sensor_name"] = None
             event_data["user"] = None
         elif data_type == "user":
-            event_data["user"] = zone_or_user
-            event_data["zone"] = None
-            event_data["zone_name"] = None
+            event_data["user"] = sensor_or_user
+            event_data["sensor"] = None
+            event_data["sensor_name"] = None
         else:
             raise ValueError(f"Invalid data type {data_type}")
+
+    @staticmethod
+    def _get_event_category(code: int) -> str:
+        """ Given a code number, get the ADEMCO category description """
+
+        bases = [int(s) for s in sorted(EVENT_CATEGORIES)]
+        last_base = None
+        for b in bases:
+            if code >= b:
+                last_base = b
+            elif code < b:
+                break
+        return EVENT_CATEGORIES[str(last_base)]

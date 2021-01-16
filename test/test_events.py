@@ -1,6 +1,11 @@
+import json
 from pathlib import Path
 
-from simon_says.events import AlarmEvent, EventQueue
+import pytest
+
+from simon_says import events as under_test
+from simon_says.ademco import EVENT_CATEGORIES
+from simon_says.helpers import redis_present
 
 CWD = Path(__file__).parent
 TEST_DATA_DIR = CWD / "data"
@@ -14,39 +19,70 @@ def test_process_files(test_parsed_events):
     assert e1["uid"] == "12abcd"
     assert e1["account"] == "1234"
     assert e1["extension"] == "simonxt"
-    assert e1["code"] == "601"
-    assert e1["code_description"] == "Manual trigger test report Zone"
-    assert e1["zone"] == "000"
-    assert e1["zone_name"] is None
+    assert e1["code"] == 601
+    assert e1["code_description"] == "Manual trigger test report"
+    assert e1["category"] == "Test/Misc"
+    assert e1["sensor"] == 0
+    assert e1["sensor_name"] == "nothing"
 
     e2 = records[1]
     assert e2["uid"] == "34efgh"
-    assert e2["code"] == "131"
-    assert e2["code_description"] == "Perimeter Zone"
-    assert e2["zone"] == "015"
-    assert e2["zone_name"] == "front window left"
+    assert e2["code"] == 131
+    assert e2["code_description"] == "Perimeter"
+    assert e2["category"] == "Alarms"
+    assert e2["sensor"] == 15
+    assert e2["sensor_name"] == "front window left"
 
 
 def test_event(test_parsed_events):
     for r in test_parsed_events:
-        event = AlarmEvent(**r)
-        assert isinstance(event, AlarmEvent)
-        assert event.to_json()
+        event = under_test.AlarmEvent(**r)
+        assert isinstance(event, under_test.AlarmEvent)
+        assert event.sensor in [0, 15]
+        assert json.loads(event.to_json())
 
 
-def test_event_queue(test_parsed_events):
-    event_queue = EventQueue()
+@pytest.mark.skipif(not redis_present(), reason="redis not present")
+def test_event_store(test_parsed_events):
+
+    # Create a new event store for testing
+    event_store = under_test.EventStore()
+
     for r in test_parsed_events:
-        event = AlarmEvent(**r)
-        event_queue.add(event)
+        # Delete it first if it exists from previous testså
+        o = event_store.get(r["uid"])
+        if o:
+            event_store.delete(r["uid"])
 
-    events = event_queue.events
+        # Create the object
+        event = under_test.AlarmEvent(**r)
+
+        # Add it to store
+        event_store.add(event)
+
+        # Retrieve it
+        e = event_store.get(r["uid"])
+        assert e.uid == r["uid"]
+
+    # Get all events
+    events = event_store.get_events()
     assert len(events) == 2
-    assert events[0].uid == "12abcd"
-    assert events[1].uid == "34efgh"
 
-    event_queue.delete("12abcd")
-    assert len(event_queue.events) == 1
+    # Clean up
+    for r in test_parsed_events:
+        event_store.delete(r["uid"])
 
-    e = event_queue.get("34efgh")
-    assert e.uid == "34efgh"
+
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        (123, EVENT_CATEGORIES["100"]),
+        (234, EVENT_CATEGORIES["200"]),
+        (345, EVENT_CATEGORIES["300"]),
+        (456, EVENT_CATEGORIES["400"]),
+        (567, EVENT_CATEGORIES["500"]),
+        (678, EVENT_CATEGORIES["600"]),
+    ],
+)
+def test_event_category(test_input, expected):
+    assert under_test.EventParser._get_event_category(test_input) == expected

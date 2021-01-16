@@ -12,4 +12,4 @@ dst_dir = /var/spool/asterisk/alarm_events_processed
 
 [control]
 access_code = "1234"
-sip_extension = "100"
+extension = "100"

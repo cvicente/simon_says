@@ -1,4 +1,5 @@
 import logging
+from enum import Enum
 from pathlib import Path
 
 from pycall import Application, Call, CallFile
@@ -21,6 +22,12 @@ ACTION_TO_DTMF = {
 logger = logging.getLogger(__name__)
 
 
+class AlarmState(Enum):
+    DISARMED = "disarmed"
+    ARMED_HOME = "armed_home"
+    ARMED_AWAY = "armed_away"
+
+
 class Controller:
     """ SimonXT controller class """
 
@@ -37,6 +44,7 @@ class Controller:
     ) -> None:
         self.cfg = ConfigLoader(config_path).config if config_path else ConfigLoader().config
 
+        self.state = AlarmState.DISARMED
         self.access_code = access_code or self.cfg.get("control", "access_code")
         self.extension = extension or self.cfg.get("control", "extension")
         self.wait_time = wait_time or int(self.cfg.get("control", "wait_time"))
@@ -85,20 +93,31 @@ class Controller:
         logger.debug("Sending action '%s' (DTMF: '%s') to alarm", action, seq)
 
         action = Application("SendDTMF", seq)
-        c = CallFile(call, action, user=self.asterisk_user, spool_dir=self.spool_dir, archive=True)
+
+        callfile_args = {
+            "archive": True,
+            "spool_dir": self.spool_dir
+        }
+        if self.asterisk_user:
+            callfile_args["user"] = self.asterisk_user
+
+        c = CallFile(call, action, **callfile_args)
         c.spool()
 
     def disarm(self) -> None:
         """ Disarm """
 
         self.send_command("disarm")
+        self.state = AlarmState.DISARMED
 
     def arm_home(self) -> None:
         """ Arm while at home """
 
         self.send_command("arm_doors_and_windows_no_delay")
+        self.state = AlarmState.ARMED_HOME
 
     def arm_away(self) -> None:
         """ Arm when going away """
 
         self.send_command("arm_doors_and_windows_and_motion_sensors")
+        self.state = AlarmState.ARMED_AWAY

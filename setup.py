@@ -10,10 +10,7 @@ setup(
     url="https://github.com/cvicente/simon_says",
     license="GPL v3.0",
     classifiers=(
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: Implementation :: CPython",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)" "Programming Language :: Python :: 3",
     ),
     packages=find_packages(exclude=["tests", "tests.*"]),
     # required for PEP-561 compatible typed packages.
@@ -28,11 +25,12 @@ setup(
         "pycall",
         "pydantic",
         "pyyaml",
+        "redis",
         "requests",
     ],
     extras_require={
-        "dev": ["mock", "pytest", "pytest-localserver", "pytest-mock", "tox", "tox-pyenv"],
+        "dev": ["mock", "pytest", "pytest-localserver", "pytest-mock", "tox"],
         "lint": ["black", "flake8", "isort"],
     },
-    scripts=["bin/simon_event_handler", "bin/simon_event_handler"]
+    scripts=["bin/simon_event_handler", "bin/simon_event_handler"],
 )
