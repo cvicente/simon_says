@@ -3,7 +3,7 @@
 version: "3.3"
 services:
   redis:
-    image: redislabs/rejson:latest
+    image: redis
     restart: always
     expose:
       - 6379

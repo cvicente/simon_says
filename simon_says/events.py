@@ -64,20 +64,20 @@ class EventStore:
             raise ValueError(f"Event with uid {event.uid} already exists")
 
         logger.debug("Adding AlarmEvent %s to store", event.uid)
-        self._redis.execute_command("JSON.SET", self.obj_key(event.uid), ".", event.to_json())
+        self._redis.execute_command("SET", self.obj_key(event.uid), event.to_json())
 
     def delete(self, uid: str) -> None:
         """ Delete an event given its UID """
 
         logger.debug("Deleting event %s", uid)
-        self._redis.execute_command("JSON.DEL", self.obj_key(uid))
+        self._redis.execute_command("DEL", self.obj_key(uid))
 
     def get(self, uid: str) -> Optional[AlarmEvent]:
         """ Get AlarmEvent by UID """
 
         logger.debug("Getting event %s from store", uid)
 
-        j_str = self._redis.execute_command("JSON.GET", self.obj_key(uid))
+        j_str = self._redis.execute_command("GET", self.obj_key(uid))
         if not j_str:
             logger.error("Event %s not found in store", uid)
             return
@@ -102,7 +102,7 @@ class EventStore:
         logger.debug("Retrieving all events from store")
         res = []
         for key in self.get_all_keys():
-            obj_data = json.loads(self._redis.execute_command("JSON.GET", key))
+            obj_data = json.loads(self._redis.execute_command("GET", key))
             res.append(AlarmEvent(**obj_data))
 
         return sorted(res, key=lambda x: x.timestamp)
