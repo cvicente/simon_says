@@ -1,13 +1,14 @@
 .PHONY: test test_local clean
 
 IMG_NAME = "simon_says_test"
+COMPOSE_FILE = "docker-compose-test.yml"
 
-test_docker:
-	docker-compose -f docker-compose-test.yml up --build ${IMG_NAME}
+docker_test:
+	docker-compose -f ${COMPOSE_FILE} up --build ${IMG_NAME}
+	make clean_docker
 
-test_local:
+local_test:
 	tox -v
 
 clean_docker:
-	docker stop ${IMG_NAME}
-	docker rm ${IMG_NAME}
+	docker-compose -f ${COMPOSE_FILE} down
