@@ -6,11 +6,14 @@ from simon_says.events import DEFAULT_REDIS_HOST, DEFAULT_REDIS_PORT
 
 def port_open(host, port) -> bool:
     """ Check if TCP port is open """
-    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
-        if sock.connect_ex((host, port)) == 0:
-            return True
-        else:
-            return False
+    try:
+        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+            if sock.connect_ex((host, port)) == 0:
+                return True
+            else:
+                return False
+    except socket.gaierror:
+        return False
 
 
 def redis_present() -> bool:

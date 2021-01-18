@@ -60,7 +60,7 @@ def test_controller_disarm(client, tmp_path):
 def test_get_sensors(client):
     response = client.simulate_get("/sensors")
     result = response.json
-    assert len(result) == 2
+    assert len(result) == 1
 
 
 def test_get_one_sensor(client):
