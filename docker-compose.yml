@@ -6,11 +6,10 @@ services:
     container_name: redis
     image: redis
     restart: always
-    ports:
-      - "6379:6379"
     command: redis-server --appendonly yes
     volumes:
       - ./redis_data:/data
+    network_mode: host
   simon_says:
     container_name: simon_says
     build:
@@ -18,10 +17,8 @@ services:
     depends_on:
       - redis
     restart: always
-    ports:
-      - "5060:5060"
-      - "8000:8000"
     volumes:
       - ./config.ini:/etc/simon_says.ini
       - ./asterisk_configs:/etc/asterisk
       - ./logs:/app/logs
+    network_mode: host
