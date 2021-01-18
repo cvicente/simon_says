@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 from setuptools import find_packages, setup
 
+__version__ = None
+exec(open("simon_says/version.py").read())
+
 setup(
     name="simon_says",
+    version=__version__,
     description="GE/Interlogix Simon XT Alarm interface library and API",
     long_description="Interact with the Simon XT Alarm system",
     author="Carlos Vicente",

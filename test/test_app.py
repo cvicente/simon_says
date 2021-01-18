@@ -13,6 +13,12 @@ def client(test_controller):
     return testing.TestClient(app)
 
 
+def test_get_version(client):
+    response = client.simulate_get("/version")
+    result = response.json
+    assert result["version"]
+
+
 @pytest.mark.skipif(not redis_present(), reason="redis not present")
 def test_post_and_get_events(client, test_parsed_events):
     store = EventStore()
@@ -68,3 +74,4 @@ def test_get_one_sensor(client):
     result = response.json
     assert result["name"] == "nothing"
     assert result["state"] == "CLOSED"
+

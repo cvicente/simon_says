@@ -7,6 +7,7 @@ from simon_says.control import Controller
 from simon_says.events import AlarmEvent, EventStore
 from simon_says.log import configure_logging
 from simon_says.sensors import Sensors, SensorState
+from simon_says.version import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -129,12 +130,22 @@ class SensorsResource:
             except KeyError:
                 logger.error("number %s not found", number)
                 raise falcon.HTTPNotFound()
-
-            resp.content_type = "application/json"
-            resp.status = falcon.HTTP_200
         else:
             logger.info("Getting all sensors")
             resp.body = self.sensors.all_as_json()
+
+        resp.content_type = "application/json"
+        resp.status = falcon.HTTP_200
+
+
+class VersionResource:
+
+    def on_get(self, req, resp):
+        """ Handle GET requests for API version """
+
+        resp.content_type = "application/json"
+        resp.status = falcon.HTTP_200
+        resp.body = json.dumps({"version": __version__})
 
 
 def create_app(controller: Controller = None, log_level: str = "INFO") -> falcon.API:
@@ -145,6 +156,9 @@ def create_app(controller: Controller = None, log_level: str = "INFO") -> falcon
     configure_logging(log_level=log_level, handlers=gunicorn_logger.handlers)
 
     api = falcon.API()
+
+    version_resource = VersionResource()
+    api.add_route("/version", version_resource)
 
     sensors = Sensors()
     sensors_resource = SensorsResource(sensors=sensors)

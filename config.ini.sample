@@ -4,11 +4,11 @@ source_dir = /var/spool/asterisk/alarm_events
 dst_dir = /var/spool/asterisk/alarm_events_processed
 
 
-[zones]
-001 = front door
-002 = garage door
-003 = back door
-015 = front window left
+[sensors]
+1 = front door
+2 = garage door
+3 = back door
+15 = front window left
 
 [control]
 access_code = "1234"

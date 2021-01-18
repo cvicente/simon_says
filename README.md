@@ -3,27 +3,41 @@
 Interact with a GE/Interlogix Simon XT using a REST API. 
 
 The only usable remote interface to the Simon XT (other than cellular modules) is the PSTN, so we
-use [Asterisk](https://www.asterisk.org/) and a SIP ATA to communicate. 
+use [Asterisk](https://www.asterisk.org/) and a SIP ATA to communicate with the unit.
 
 This package includes:
 
 * The WSGI server (app)
 * A client library
-* An event handler script to parse `alarmreceiver` events and submit them to the API
+* An event handler script to parse Asterisk's `alarmreceiver` events and submit them to the API
 
-The REST API provides the following:
+With this API, you can:
 
+* Get a list of sensors, and their state (open/closed)
 * Submit new events
 * List events
-* Getting a single event using its UID
-* Sending the following commands:
+* Get a single event using its UID
+* Get the alarm's state (disarmed, armed_home, armed_away)
+* Send the following commands:
     * arm_home
     * arm_away
     * disarm
 
-Sample output:
+Sample outputs:
 
 ```buildoutcfg
+# http localhost:8000/control
+HTTP/1.1 200 OK
+Connection: close
+Date: Mon, 18 Jan 2021 22:58:01 GMT
+Server: gunicorn/20.0.4
+content-length: 21
+content-type: application/json
+
+{
+    "state": "DISARMED"
+}
+
 # http localhost:8000/events
 HTTP/1.1 200 OK
 Connection: close
@@ -38,7 +52,7 @@ content-type: application/json
         "checksum": 3,
         "code": 601,
         "code_description": "Manual trigger test report Zone",
-        "extension": "102",
+        "extension": "100",
         "msg_type": 18,
         "partition": 0,
         "qualifier": 1,
@@ -51,12 +65,31 @@ content-type: application/json
     }
 ]
 
+# http localhost:8000/sensors
+HTTP/1.1 200 OK
+Connection: close
+Date: Mon, 18 Jan 2021 22:57:15 GMT
+Server: gunicorn/20.0.4
+content-length: 951
+content-type: application/json
+
+[
+    {
+        "name": "nothing",
+        "number": 0,
+        "state": "CLOSED"
+    },
+    {
+        "name": "front door",
+        "number": 1,
+        "state": "CLOSED"
+    },
+]
 ```
 
 ## Persistence
 
-The API does not persist event data, so reloading the server will clear the events queue.
-This can be solved easily in the future by adding a Redis backend, or similar.
+This API uses [Redis](https://redis.io/) to store and persist events.
 
 # Installation
 
@@ -65,10 +98,10 @@ This can be solved easily in the future by adding a Redis backend, or similar.
 The server can be run either as a Docker container, or directly on the host, once the library
 is installed.
 
-The Docker container includes an asterisk instance. The easiest way to get up and running is using
+The Docker container includes an Asterisk instance. The easiest way to get up and running is cloning the repo and using
 docker-compose. 
 
-Before you run the container, copy the sample config.ini and edit it with your zones:
+Before you run the container, copy the sample config.ini and edit it with your sensor information:
 
 ```buildoutcfg
 cp config.ini.sample config.ini
