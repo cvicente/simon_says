@@ -7,6 +7,9 @@ services:
     restart: always
     expose:
       - 6379
+    command: redis-server --appendonly yes
+    volumes:
+      - ./redis_data:/data
   simon_says:
     container_name: simon_says
     build:
@@ -15,8 +18,8 @@ services:
       - redis
     restart: always
     expose:
-      - "5060"
-      - "8000"
+      - 5060
+      - 8000
     volumes:
       - ./config.ini:/etc/simon_says.ini
       - ./asterisk_configs:/etc/asterisk

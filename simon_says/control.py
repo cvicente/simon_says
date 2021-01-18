@@ -94,10 +94,7 @@ class Controller:
 
         action = Application("SendDTMF", seq)
 
-        callfile_args = {
-            "archive": True,
-            "spool_dir": self.spool_dir
-        }
+        callfile_args = {"archive": True, "spool_dir": self.spool_dir}
         if self.asterisk_user:
             callfile_args["user"] = self.asterisk_user
 

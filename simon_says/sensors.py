@@ -1,7 +1,8 @@
+import json
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List
 
 from pydantic import BaseModel
 
@@ -23,6 +24,16 @@ class Sensor(BaseModel):
     name: str
     state: SensorState = SensorState.CLOSED
 
+    def to_dict(self) -> Dict[str, Any]:
+        """ Convert to Dict """
+        res = self.__dict__
+        res["state"] = self.state.name
+        return res
+
+    def to_json(self) -> str:
+        """ Convert to JSON """
+        return json.dumps(self.to_dict())
+
 
 class Sensors:
     """
@@ -42,13 +53,19 @@ class Sensors:
 
         self._sensors_by_number[sensor.number] = sensor
 
-    def by_number(self, number) -> Sensor:
+    def by_number(self, number: int) -> Sensor:
         """ Get sensor given its number """
         return self._sensors_by_number[number]
 
     def get_all_sensors(self) -> List[Sensor]:
         """ Get all sensors in the collection """
+
         return list(self._sensors_by_number.values())
+
+    def all_as_json(self) -> str:
+        """ Return all sensors as JSON """
+
+        return json.dumps([s.to_dict() for s in self.get_all_sensors()])
 
     def clear_all(self) -> None:
         """ Clear all sensors (set to CLOSED state) """
@@ -60,4 +77,4 @@ class Sensors:
     def _load_from_config(self) -> None:
         """ Load sensors into collection from config data """
         for number, name in self.cfg["sensors"].items():
-            self.add(Sensor(number=number, name=name))
+            self.add(Sensor(number=int(number), name=name))

@@ -2,8 +2,8 @@ import falcon
 import pytest
 from falcon import testing
 
-from simon_says.events import EventStore
 from simon_says.app import create_app
+from simon_says.events import EventStore
 from simon_says.helpers import redis_present
 
 
@@ -55,3 +55,16 @@ def test_controller_disarm(client, tmp_path):
     lines = call_file.read_text().splitlines()
     assert lines[5] == "Data: ww123w1w9"
     call_file.unlink()
+
+
+def test_get_sensors(client):
+    response = client.simulate_get("/sensors")
+    result = response.json
+    assert len(result) == 2
+
+
+def test_get_one_sensor(client):
+    response = client.simulate_get("/sensors/0")
+    result = response.json
+    assert result["name"] == "nothing"
+    assert result["state"] == "CLOSED"

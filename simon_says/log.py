@@ -1,23 +1,18 @@
 import logging
 import sys
-from pathlib import Path
+from typing import List
 
-DEFAULT_LOG_PATH = Path("/var/log/simon_says.log")
+DEFAULT_HANDLER = logging.StreamHandler(sys.stdout)
 
 
-def configure_logging(log_level: str, log_path: Path = DEFAULT_LOG_PATH) -> None:
+def configure_logging(log_level: str = "INFO", handlers: List[logging.Handler] = None) -> None:
     """
-    Configure logging to log both to LOG_FILENAME and to STDOUT.
+    Configure logging
     """
 
     root = logging.getLogger()
     root.setLevel(log_level)
-
-    file_handler = logging.FileHandler(log_path)
-    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-    file_handler.suffix = "%Y%m%d"
-
-    stream_handler = logging.StreamHandler(sys.stdout)
-
-    for handler in (stream_handler, file_handler):
-        root.addHandler(handler)
+    if handlers:
+        root.handlers = handlers
+    else:
+        root.addHandler(DEFAULT_HANDLER)

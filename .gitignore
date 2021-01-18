@@ -141,4 +141,4 @@ cython_debug/
 .DS_Store
 asterisk/
 config.ini
-
+redis_data/

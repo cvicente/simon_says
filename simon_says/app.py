@@ -5,6 +5,7 @@ import falcon
 
 from simon_says.control import Controller
 from simon_says.events import AlarmEvent, EventStore
+from simon_says.log import configure_logging
 from simon_says.sensors import Sensors, SensorState
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,7 @@ class EventsResource:
                 e = self.event_store.get(uid=uid)
                 resp.body = e.to_json()
             except KeyError:
-                logger.error("uid %s not found")
+                logger.error("uid %s not found", uid)
                 raise falcon.HTTPNotFound()
 
         else:
@@ -112,12 +113,44 @@ class ControllerResource:
         resp.body = json.dumps({"result": "OK"})
 
 
-def create_app(controller: Controller = None) -> falcon.API:
+class SensorsResource:
+    """ Sensors resource class """
+
+    def __init__(self, sensors: Sensors) -> None:
+        self.sensors = sensors
+
+    def on_get(self, req, resp, number: int = None):
+        """ Handle GET requests for a given sensor number """
+
+        if number:
+            try:
+                sensor = self.sensors.by_number(int(number))
+                resp.body = sensor.to_json()
+            except KeyError:
+                logger.error("number %s not found", number)
+                raise falcon.HTTPNotFound()
+
+            resp.content_type = "application/json"
+            resp.status = falcon.HTTP_200
+        else:
+            logger.info("Getting all sensors")
+            resp.body = self.sensors.all_as_json()
+
+
+def create_app(controller: Controller = None, log_level: str = "INFO") -> falcon.API:
     """ Create a Falcon.API object """
+
+    # Wire up the app handler with gunicorn's
+    gunicorn_logger = logging.getLogger("gunicorn.error")
+    configure_logging(log_level=log_level, handlers=gunicorn_logger.handlers)
 
     api = falcon.API()
 
     sensors = Sensors()
+    sensors_resource = SensorsResource(sensors=sensors)
+    api.add_route("/sensors", sensors_resource)
+    api.add_route("/sensors/{number}", sensors_resource)
+
     events_resource = EventsResource(event_store=EventStore(), sensors=sensors)
     api.add_route("/events", events_resource)
     api.add_route("/events/{uid}", events_resource)
