@@ -142,3 +142,4 @@ cython_debug/
 asterisk/
 config.ini
 redis_data/
+asterisk_configs/
