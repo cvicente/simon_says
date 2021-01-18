@@ -3,10 +3,11 @@
 version: "3.3"
 services:
   redis:
+    container_name: redis
     image: redis
     restart: always
-    expose:
-      - 6379
+    ports:
+      - "6379:6379"
     command: redis-server --appendonly yes
     volumes:
       - ./redis_data:/data
@@ -17,10 +18,10 @@ services:
     depends_on:
       - redis
     restart: always
-    expose:
-      - 5060
-      - 8000
+    ports:
+      - "5060:5060"
+      - "8000:8000"
     volumes:
       - ./config.ini:/etc/simon_says.ini
       - ./asterisk_configs:/etc/asterisk
-    network_mode: host
+      - ./logs:/app/logs

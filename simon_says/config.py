@@ -30,7 +30,7 @@ DEFAULTS = {
         "spool_dir": "/var/spool/asterisk/outgoing",
     },
     # Default sensor (zone) names.
-    "sensors": {"0": "nothing", "15": "front window left"},
+    "sensors": {"0": "nothing"},
 }
 
 

@@ -1,18 +1,29 @@
 import logging
+import os
 import sys
 from typing import List
 
-DEFAULT_HANDLER = logging.StreamHandler(sys.stdout)
+DEFAULT_LOGLEVEL = "INFO"
 
 
-def configure_logging(log_level: str = "INFO", handlers: List[logging.Handler] = None) -> None:
+def configure_logging(log_level: str = None, handlers: List[logging.Handler] = None) -> None:
     """
     Configure logging
     """
 
+    # Get root logger
     root = logging.getLogger()
-    root.setLevel(log_level)
+
+    if log_level:
+        # Set the level passed to this function
+        root.setLevel(log_level)
+    else:
+        # Check if ENV log level is set, otherwise use default
+        log_level = os.environ.get("SIMON_SAYS_LOGLEVEL") or DEFAULT_LOGLEVEL
+        root.setLevel(log_level)
     if handlers:
+        # Use the handlers passed to this function
         root.handlers = handlers
     else:
-        root.addHandler(DEFAULT_HANDLER)
+        # Or use the default handler
+        root.addHandler(logging.StreamHandler(sys.stdout))

@@ -1,4 +1,4 @@
-.PHONY: test test_local clean
+.PHONY: docker_test local_test clean
 
 IMG_NAME = "simon_says_test"
 COMPOSE_FILE = "docker-compose-test.yml"

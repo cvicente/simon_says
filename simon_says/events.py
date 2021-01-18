@@ -14,7 +14,7 @@ from simon_says.config import ConfigLoader
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_REDIS_HOST = "localhost"
+DEFAULT_REDIS_HOST = "redis"
 DEFAULT_REDIS_PORT = 6379
 
 
