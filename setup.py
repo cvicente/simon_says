@@ -14,7 +14,8 @@ setup(
     url="https://github.com/cvicente/simon_says",
     license="GPL v3.0",
     classifiers=(
-        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)" "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Programming Language :: Python :: 3",
     ),
     packages=find_packages(exclude=["tests", "tests.*"]),
     # required for PEP-561 compatible typed packages.
