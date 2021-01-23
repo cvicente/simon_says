@@ -4,6 +4,7 @@ import logging
 import falcon
 
 from simon_says.control import Controller
+from simon_says.db import DataStore
 from simon_says.events import AlarmEvent, EventStore
 from simon_says.log import configure_logging
 from simon_says.sensors import Sensors, SensorState
@@ -73,7 +74,7 @@ class ControllerResource:
 
     def __init__(self, sensors: Sensors, controller: Controller = None) -> None:
         self.sensors = sensors
-        self.controller = controller or Controller()
+        self.controller = controller
 
     def on_get(self, req, resp):
         """ Handle GET requests for controller state """
@@ -139,7 +140,6 @@ class SensorsResource:
 
 
 class VersionResource:
-
     def on_get(self, req, resp):
         """ Handle GET requests for API version """
 
@@ -157,6 +157,8 @@ def create_app(controller: Controller = None, log_level: str = "INFO") -> falcon
 
     api = falcon.API()
 
+    db = DataStore()
+
     version_resource = VersionResource()
     api.add_route("/version", version_resource)
 
@@ -165,10 +167,12 @@ def create_app(controller: Controller = None, log_level: str = "INFO") -> falcon
     api.add_route("/sensors", sensors_resource)
     api.add_route("/sensors/{number}", sensors_resource)
 
-    events_resource = EventsResource(event_store=EventStore(), sensors=sensors)
+    events_resource = EventsResource(event_store=EventStore(db=db), sensors=sensors)
     api.add_route("/events", events_resource)
     api.add_route("/events/{uid}", events_resource)
 
+    if not controller:
+        controller = Controller(db=db)
     controller_resource = ControllerResource(sensors=sensors, controller=controller)
     api.add_route("/control", controller_resource)
 

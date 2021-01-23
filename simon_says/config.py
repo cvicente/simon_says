@@ -7,6 +7,10 @@ DEFAULT_CONFIG_PATH = Path("/etc/simon_says.ini")
 logger = logging.getLogger(__name__)
 
 DEFAULTS = {
+    "data_store": {
+        "redis_host": "localhost",
+        "redis_port": 6379,
+    },
     "events": {
         # Default directories to read files from and move them to on the Asterisk instance
         "src_dir": "/var/spool/asterisk/alarm_events",

@@ -1,3 +1,10 @@
+import pytest
+
+from simon_says.helpers import redis_present
+
+pytestmark = pytest.mark.skipif(not redis_present(), reason="redis not present")
+
+
 def test_send_disarm_command(test_controller, tmp_path):
     test_controller.send_command("disarm")
     call_file = next(tmp_path.iterdir())

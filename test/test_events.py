@@ -43,13 +43,13 @@ def test_event(test_parsed_events):
 
 
 @pytest.mark.skipif(not redis_present(), reason="redis not present")
-def test_event_store(test_parsed_events):
+def test_event_store(test_parsed_events, test_db):
 
     # Create a new event store for testing
-    event_store = under_test.EventStore()
+    event_store = under_test.EventStore(db=test_db)
 
     for r in test_parsed_events:
-        # Delete it first if it exists from previous testså
+        # Delete it first if it exists from previous tests
         o = event_store.get(r["uid"])
         if o:
             event_store.delete(r["uid"])

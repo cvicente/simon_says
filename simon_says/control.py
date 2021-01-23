@@ -5,6 +5,7 @@ from pathlib import Path
 from pycall import Application, Call, CallFile
 
 from simon_says.config import ConfigLoader
+from simon_says.db import DataStore
 
 # Map relevant actions to DTMF sequences
 # See user manual at https://static.interlogix.com/library/466-2266_rev_f.pdf
@@ -33,6 +34,7 @@ class Controller:
 
     def __init__(
         self,
+        db: DataStore = None,
         config_path: Path = None,
         access_code: str = None,
         extension: str = None,
@@ -43,7 +45,8 @@ class Controller:
         spool_dir: Path = None,
     ) -> None:
         self.cfg = ConfigLoader(config_path).config if config_path else ConfigLoader().config
-
+        self._db = db or DataStore()
+        self._state_db_key = "controller_state"
         self.state = AlarmState.DISARMED
         self.access_code = access_code or self.cfg.get("control", "access_code")
         self.extension = extension or self.cfg.get("control", "extension")
@@ -55,6 +58,17 @@ class Controller:
 
         if not self.spool_dir.is_dir():
             raise ValueError(f"spool_dir {self.spool_dir} is not a valid directory")
+
+    @property
+    def state(self) -> AlarmState:
+        """ Return the controller state """
+        state_name = self._db.get(self._state_db_key)
+        return AlarmState(state_name)
+
+    @state.setter
+    def state(self, state: AlarmState) -> None:
+        """ Set the state in a persistent way """
+        self._db.add(self._state_db_key, state.name)
 
     def _build_dtmf_sequence(self, action: str) -> str:
         """

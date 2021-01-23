@@ -5,6 +5,8 @@ from simon_says.app import create_app
 from simon_says.client import Client
 from simon_says.helpers import redis_present
 
+pytestmark = pytest.mark.skipif(not redis_present(), reason="redis not present")
+
 
 @pytest.fixture
 def test_server(request, test_controller):
@@ -19,7 +21,6 @@ def test_client(test_server):
     return Client(test_server.url)
 
 
-@pytest.mark.skipif(not redis_present(), reason="redis not present")
 def test_client_add_and_get_events(test_client, test_parsed_events):
     uid = "12abcd"
     for rec in test_parsed_events:
