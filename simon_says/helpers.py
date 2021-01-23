@@ -1,7 +1,9 @@
 import socket
 from contextlib import closing
 
-from simon_says.events import DEFAULT_REDIS_HOST, DEFAULT_REDIS_PORT
+from simon_says.config import ConfigLoader
+
+config = ConfigLoader().config
 
 
 def port_open(host, port) -> bool:
@@ -18,4 +20,4 @@ def port_open(host, port) -> bool:
 
 def redis_present() -> bool:
     """ Check if Redis service is present """
-    return port_open(DEFAULT_REDIS_HOST, DEFAULT_REDIS_PORT)
+    return port_open(config.get("data_store", "redis_host"), int(config.get("data_store", "redis_port")))

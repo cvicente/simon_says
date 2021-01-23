@@ -6,16 +6,13 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import redis
 from pydantic import BaseModel
 
 from simon_says.ademco import CODES, EVENT_CATEGORIES
 from simon_says.config import ConfigLoader
+from simon_says.db import DataStore
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_REDIS_HOST = "localhost"
-DEFAULT_REDIS_PORT = 6379
 
 
 class AlarmEvent(BaseModel):
@@ -47,15 +44,11 @@ class AlarmEvent(BaseModel):
 
 
 class EventStore:
-    """
-    A store of alarm events. Uses Redis for persistence.
-    """
+    """ A store of alarm events """
 
-    def __init__(self, redis_host: str = DEFAULT_REDIS_HOST, redis_port: int = DEFAULT_REDIS_PORT) -> None:
+    def __init__(self, db: DataStore) -> None:
         self._namespace = "event"
-
-        logger.debug("Instantiating Redis client at %s:%s", redis_host, redis_port)
-        self._redis = redis.Redis(host=redis_host, port=redis_port, db=0)
+        self._db = db
 
     def add(self, event: AlarmEvent) -> None:
         """ Add an event """
@@ -64,23 +57,22 @@ class EventStore:
             raise ValueError(f"Event with uid {event.uid} already exists")
 
         logger.debug("Adding AlarmEvent %s to store", event.uid)
-        self._redis.execute_command("SET", self.obj_key(event.uid), event.to_json())
+        self._db.add(self.obj_key(event.uid), event.to_json())
 
     def delete(self, uid: str) -> None:
         """ Delete an event given its UID """
 
         logger.debug("Deleting event %s", uid)
-        self._redis.execute_command("DEL", self.obj_key(uid))
+        self._db.delete(self.obj_key(uid))
 
     def get(self, uid: str) -> Optional[AlarmEvent]:
         """ Get AlarmEvent by UID """
 
         logger.debug("Getting event %s from store", uid)
 
-        j_str = self._redis.execute_command("GET", self.obj_key(uid))
+        j_str = self._db.get(self.obj_key(uid))
         if not j_str:
-            logger.error("Event %s not found in store", uid)
-            return
+            raise ValueError(f"Event {uid} not found in store")
 
         obj_data = json.loads(j_str)
         return AlarmEvent(**obj_data)
@@ -89,7 +81,7 @@ class EventStore:
         """ Get all keys in our namespace """
 
         logger.debug("Retrieving all %s keys from store", self._namespace)
-        return self._redis.execute_command(f"KEYS {self._namespace}*")
+        return self._db.get_all_keys(f"{self._namespace}*")
 
     def obj_key(self, uid: str) -> str:
         """ Return the key string used to store and retrieve event objects """
@@ -102,7 +94,7 @@ class EventStore:
         logger.debug("Retrieving all events from store")
         res = []
         for key in self.get_all_keys():
-            obj_data = json.loads(self._redis.execute_command("GET", key))
+            obj_data = json.loads(self._db.get(key))
             res.append(AlarmEvent(**obj_data))
 
         return sorted(res, key=lambda x: x.timestamp)

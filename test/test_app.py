@@ -6,6 +6,8 @@ from simon_says.app import create_app
 from simon_says.events import EventStore
 from simon_says.helpers import redis_present
 
+pytestmark = pytest.mark.skipif(not redis_present(), reason="redis not present")
+
 
 @pytest.fixture
 def client(test_controller):
@@ -19,7 +21,6 @@ def test_get_version(client):
     assert result["version"]
 
 
-@pytest.mark.skipif(not redis_present(), reason="redis not present")
 def test_post_and_get_events(client, test_parsed_events):
     store = EventStore()
 
@@ -74,4 +75,3 @@ def test_get_one_sensor(client):
     result = response.json
     assert result["name"] == "nothing"
     assert result["state"] == "CLOSED"
-
