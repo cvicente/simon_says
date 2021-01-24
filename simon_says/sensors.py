@@ -27,7 +27,7 @@ class Sensor(BaseModel):
     def to_dict(self) -> Dict[str, Any]:
         """ Convert to Dict """
         res = self.__dict__
-        res["state"] = self.state.name
+        res["state"] = self.state.value
         return res
 
     def to_json(self) -> str:

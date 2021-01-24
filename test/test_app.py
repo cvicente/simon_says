@@ -21,8 +21,8 @@ def test_get_version(client):
     assert result["version"]
 
 
-def test_post_and_get_events(client, test_parsed_events):
-    store = EventStore()
+def test_post_and_get_events(client, test_parsed_events, test_db):
+    store = EventStore(db=test_db)
 
     for rec in test_parsed_events:
         # Delete the event first if it already exists
@@ -47,12 +47,6 @@ def test_post_and_get_events(client, test_parsed_events):
     assert result["uid"] == uid
 
 
-def test_controller_get_state(client):
-    response = client.simulate_get("/control")
-    result = response.json
-    assert result["state"] == "DISARMED"
-
-
 def test_controller_disarm(client, tmp_path):
     data = {"action": "disarm"}
     resp = client.simulate_post("/control", json=data)
@@ -60,7 +54,7 @@ def test_controller_disarm(client, tmp_path):
 
     call_file = next(tmp_path.iterdir())
     lines = call_file.read_text().splitlines()
-    assert lines[5] == "Data: ww123w1w9"
+    assert lines[5] == "Data: ww1234w1w9"
     call_file.unlink()
 
 
@@ -74,4 +68,4 @@ def test_get_one_sensor(client):
     response = client.simulate_get("/sensors/0")
     result = response.json
     assert result["name"] == "nothing"
-    assert result["state"] == "CLOSED"
+    assert result["state"] == "closed"

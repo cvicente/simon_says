@@ -16,10 +16,11 @@ logger = logging.getLogger(__name__)
 class EventsResource:
     """ API resource for Events """
 
-    def __init__(self, event_store: EventStore, sensors: Sensors) -> None:
+    def __init__(self, event_store: EventStore, sensors: Sensors, controller: Controller) -> None:
 
         self.event_store = event_store
         self.sensors = sensors
+        self.controller = controller
 
     def _set_sensor_state(self, event: AlarmEvent) -> None:
         """ Set the sensor state depending on the event code """
@@ -27,6 +28,7 @@ class EventsResource:
         category = event.category
         if event.sensor and category == "Troubles":
             sensor = self.sensors.by_number(event.sensor)
+            logger.info("Setting sensor %s (%s) state to 'open'", event.sensor, event.sensor_name)
             sensor.state = SensorState.OPEN
         else:
             logger.debug("_set_sensor_state: Ignoring event %s", event.uid)
@@ -75,14 +77,6 @@ class ControllerResource:
     def __init__(self, sensors: Sensors, controller: Controller = None) -> None:
         self.sensors = sensors
         self.controller = controller
-
-    def on_get(self, req, resp):
-        """ Handle GET requests for controller state """
-
-        resp.body = json.dumps({"state": str(self.controller.state.name)})
-
-        resp.content_type = "application/json"
-        resp.status = falcon.HTTP_200
 
     def on_post(self, req, resp):
         """ Handle POST requests for commands """
@@ -157,7 +151,8 @@ def create_app(controller: Controller = None, log_level: str = "INFO") -> falcon
 
     api = falcon.API()
 
-    db = DataStore()
+    if not controller:
+        controller = Controller()
 
     version_resource = VersionResource()
     api.add_route("/version", version_resource)
@@ -167,12 +162,11 @@ def create_app(controller: Controller = None, log_level: str = "INFO") -> falcon
     api.add_route("/sensors", sensors_resource)
     api.add_route("/sensors/{number}", sensors_resource)
 
-    events_resource = EventsResource(event_store=EventStore(db=db), sensors=sensors)
+    db = DataStore()
+    events_resource = EventsResource(event_store=EventStore(db=db), sensors=sensors, controller=controller)
     api.add_route("/events", events_resource)
     api.add_route("/events/{uid}", events_resource)
 
-    if not controller:
-        controller = Controller(db=db)
     controller_resource = ControllerResource(sensors=sensors, controller=controller)
     api.add_route("/control", controller_resource)
 

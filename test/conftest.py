@@ -45,7 +45,6 @@ def test_parsed_events(test_event_parser):
 @pytest.fixture
 def test_controller(tmp_path, test_config_path, test_db):
     return Controller(
-        db=test_db,
         config_path=test_config_path,
         spool_dir=tmp_path,
         asterisk_user=os.environ.get("USER", None),

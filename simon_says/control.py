@@ -1,11 +1,9 @@
 import logging
-from enum import Enum
 from pathlib import Path
 
 from pycall import Application, Call, CallFile
 
 from simon_says.config import ConfigLoader
-from simon_says.db import DataStore
 
 # Map relevant actions to DTMF sequences
 # See user manual at https://static.interlogix.com/library/466-2266_rev_f.pdf
@@ -23,18 +21,11 @@ ACTION_TO_DTMF = {
 logger = logging.getLogger(__name__)
 
 
-class AlarmState(Enum):
-    DISARMED = "disarmed"
-    ARMED_HOME = "armed_home"
-    ARMED_AWAY = "armed_away"
-
-
 class Controller:
     """ SimonXT controller class """
 
     def __init__(
         self,
-        db: DataStore = None,
         config_path: Path = None,
         access_code: str = None,
         extension: str = None,
@@ -45,9 +36,7 @@ class Controller:
         spool_dir: Path = None,
     ) -> None:
         self.cfg = ConfigLoader(config_path).config if config_path else ConfigLoader().config
-        self._db = db or DataStore()
-        self._state_db_key = "controller_state"
-        self.state = AlarmState.DISARMED
+        self._state_db_key = "armed_state"
         self.access_code = access_code or self.cfg.get("control", "access_code")
         self.extension = extension or self.cfg.get("control", "extension")
         self.wait_time = wait_time or int(self.cfg.get("control", "wait_time"))
@@ -58,17 +47,6 @@ class Controller:
 
         if not self.spool_dir.is_dir():
             raise ValueError(f"spool_dir {self.spool_dir} is not a valid directory")
-
-    @property
-    def state(self) -> AlarmState:
-        """ Return the controller state """
-        state_name = self._db.get(self._state_db_key)
-        return AlarmState(state_name)
-
-    @state.setter
-    def state(self, state: AlarmState) -> None:
-        """ Set the state in a persistent way """
-        self._db.add(self._state_db_key, state.name)
 
     def _build_dtmf_sequence(self, action: str) -> str:
         """
@@ -119,16 +97,13 @@ class Controller:
         """ Disarm """
 
         self.send_command("disarm")
-        self.state = AlarmState.DISARMED
 
     def arm_home(self) -> None:
         """ Arm while at home """
 
         self.send_command("arm_doors_and_windows_no_delay")
-        self.state = AlarmState.ARMED_HOME
 
     def arm_away(self) -> None:
         """ Arm when going away """
 
         self.send_command("arm_doors_and_windows_and_motion_sensors")
-        self.state = AlarmState.ARMED_AWAY
