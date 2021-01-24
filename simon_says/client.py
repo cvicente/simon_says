@@ -13,14 +13,6 @@ class Client(object):
         self._url = url
         self._session = requests.Session()
 
-    def get_state(self, timeout: int = DEFAULT_TIMEOUT) -> List[Dict[str, Any]]:
-        """ Get alarm state """
-        r = self._session.get(f"{self._url}/control", timeout=timeout)
-        if r.status_code == 200:
-            return r.text
-        else:
-            raise RuntimeError(f"Error code: {r.status_code}, content: {r.text}")
-
     def arm_home(self, timeout: int = DEFAULT_TIMEOUT) -> str:
         r = self._session.post(f"{self._url}/control", json={"action": "arm_home"}, timeout=timeout)
         if r.status_code == 202:
