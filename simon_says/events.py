@@ -53,7 +53,7 @@ class EventStore:
     def add(self, event: AlarmEvent) -> None:
         """ Add an event """
 
-        if self.get(event.uid):
+        if self._db.get(self.obj_key(event.uid)):
             raise ValueError(f"Event with uid {event.uid} already exists")
 
         logger.debug("Adding AlarmEvent %s to store", event.uid)
@@ -72,7 +72,7 @@ class EventStore:
 
         j_str = self._db.get(self.obj_key(uid))
         if not j_str:
-            raise ValueError(f"Event {uid} not found in store")
+            return None
 
         obj_data = json.loads(j_str)
         return AlarmEvent(**obj_data)

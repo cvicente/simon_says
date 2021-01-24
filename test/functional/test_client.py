@@ -34,16 +34,6 @@ def test_client_add_and_get_events(test_client, test_parsed_events):
     assert event1["uid"] == uid
 
 
-def test_client_get_state(test_client):
-    res = test_client.get_state()
-    assert res == '{"state": "DISARMED"}'
-
-
-def test_client_disarm(test_client):
-    res = test_client.disarm()
-    assert res == '{"result": "OK"}'
-
-
 def test_client_arm_home(test_client):
     res = test_client.arm_home()
     assert res == '{"result": "OK"}'
@@ -51,4 +41,9 @@ def test_client_arm_home(test_client):
 
 def test_client_arm_away(test_client):
     res = test_client.arm_away()
+    assert res == '{"result": "OK"}'
+
+
+def test_client_disarm(test_client):
+    res = test_client.disarm()
     assert res == '{"result": "OK"}'
