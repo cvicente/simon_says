@@ -11,5 +11,5 @@ dst_dir = /var/spool/asterisk/alarm_events_processed
 15 = front window left
 
 [control]
-access_code = "1234"
-extension = "100"
+access_code = 1234
+extension = 100

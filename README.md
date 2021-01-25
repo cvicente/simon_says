@@ -25,19 +25,7 @@ With this API, you can:
 
 Sample outputs:
 
-```buildoutcfg
-# http localhost:8000/control
-HTTP/1.1 200 OK
-Connection: close
-Date: Mon, 18 Jan 2021 22:58:01 GMT
-Server: gunicorn/20.0.4
-content-length: 21
-content-type: application/json
-
-{
-    "state": "DISARMED"
-}
-
+```
 # http localhost:8000/events
 HTTP/1.1 200 OK
 Connection: close
@@ -77,12 +65,12 @@ content-type: application/json
     {
         "name": "nothing",
         "number": 0,
-        "state": "CLOSED"
+        "state": "closed"
     },
     {
         "name": "front door",
         "number": 1,
-        "state": "CLOSED"
+        "state": "closed"
     },
 ]
 ```

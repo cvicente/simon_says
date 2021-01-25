@@ -19,7 +19,7 @@ class AlarmEvent(BaseModel):
     """ Represents an alarm event """
 
     uid: str
-    timestamp: float
+    timestamp: int
     extension: str
     account: int
     msg_type: int
@@ -222,11 +222,11 @@ class EventParser:
         return filename.replace("event-", "")
 
     @staticmethod
-    def _parse_timestamp_str(timestamp: str) -> float:
-        """ Convert the timestamp coming from Asterisk into a datetime object """
+    def _parse_timestamp_str(timestamp: str) -> int:
+        """ Convert the string timestamp coming from Asterisk into seconds from epoch"""
         # e.g
         # Sat Dec 26, 2020 @ 16:16:29 UTC => datetime.datetime(2020, 12, 26, 16, 16, 29)
-        return datetime.datetime.strptime(timestamp, "%a %b %d, %Y @ %H:%M:%S %Z").timestamp()
+        return int(datetime.datetime.strptime(timestamp, "%a %b %d, %Y @ %H:%M:%S %Z").timestamp())
 
     def _set_sensor_or_user(self, event_data: Dict, sensor_or_user: int) -> None:
         """ Set either sensor or user fields """
