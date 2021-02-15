@@ -2,7 +2,7 @@
 
 Interact with a GE/Interlogix Simon XT using a REST API. 
 
-The only usable remote interface to the Simon XT (other than cellular modules) is the PSTN, so we
+The only usable remote interface to the Simon XT (other than cellular modules) is the POTS/PSTN line, so we
 use [Asterisk](https://www.asterisk.org/) and a SIP ATA to communicate with the unit.
 
 This package includes:
@@ -17,7 +17,6 @@ With this API, you can:
 * Submit new events
 * List events
 * Get a single event using its UID
-* Get the alarm's state (disarmed, armed_home, armed_away)
 * Send the following commands:
     * arm_home
     * arm_away
@@ -128,6 +127,49 @@ docker-compose up -d
 ## Library
 ```
 pip install simon_says
+```
+
+### Using the client
+
+Here is a short script that can be used to schedule arming/disarming the alarm using a cron job:
+
+```buildoutcfg
+#!/usr/bin/env python3
+
+from simon_says.client import Client
+import argparse
+
+
+def parse_args() -> argparse.Namespace:
+    """ Parse command line arguments """
+    parser = argparse.ArgumentParser(description="Alarm Schedule")
+    parser.add_argument(
+        "-a", "--action", type=str, help="Action to execute", required=True, choices=["arm", "disarm"]
+    )
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+
+    args = parse_args()
+
+    client = Client(url="http://localhost:8000")
+
+    if args.action == "arm":
+        client.arm_home()
+    elif args.action == "disarm":
+        client.disarm()
+```
+
+And the corresponding cron jobs:
+
+```buildoutcfg
+# m h  dom mon dow   command
+
+# Arm/Disarm alarm every day at the same times
+0 6 * * * /home/username/alarm_schedule.py -a disarm
+0 22 * * * /home/username/alarm_schedule.py -a arm
+
 ```
 
 # Links

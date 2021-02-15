@@ -1,4 +1,5 @@
 import logging
+from configparser import ConfigParser
 from pathlib import Path
 
 from pycall import Application, Call, CallFile
@@ -26,7 +27,7 @@ class Controller:
 
     def __init__(
         self,
-        config_path: Path = None,
+        config: ConfigParser = None,
         access_code: str = None,
         extension: str = None,
         wait_time: int = None,
@@ -35,7 +36,7 @@ class Controller:
         asterisk_user: str = None,
         spool_dir: Path = None,
     ) -> None:
-        self.cfg = ConfigLoader(config_path).config if config_path else ConfigLoader().config
+        self.cfg = config or ConfigLoader().config
         self._state_db_key = "armed_state"
         self.access_code = access_code or self.cfg.get("control", "access_code")
         self.extension = extension or self.cfg.get("control", "extension")

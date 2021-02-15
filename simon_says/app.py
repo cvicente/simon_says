@@ -1,5 +1,6 @@
 import json
 import logging
+from configparser import ConfigParser
 
 import falcon
 
@@ -115,7 +116,7 @@ class SensorsResource:
     def __init__(self, sensors: Sensors) -> None:
         self.sensors = sensors
 
-    def on_get(self, req, resp, number: int = None):
+    def on_get(self, req, resp, number: str = None):
         """ Handle GET requests for a given sensor number """
 
         if number:
@@ -134,7 +135,10 @@ class SensorsResource:
 
 
 class VersionResource:
-    def on_get(self, req, resp):
+    """ Version resource class """
+
+    @staticmethod
+    def on_get(req, resp):
         """ Handle GET requests for API version """
 
         resp.content_type = "application/json"
@@ -142,7 +146,7 @@ class VersionResource:
         resp.body = json.dumps({"version": __version__})
 
 
-def create_app(controller: Controller = None, log_level: str = "INFO") -> falcon.API:
+def create_app(config: ConfigParser = None, controller: Controller = None, log_level: str = "INFO") -> falcon.API:
     """ Create a Falcon.API object """
 
     # Wire up the app handler with gunicorn's
@@ -152,17 +156,17 @@ def create_app(controller: Controller = None, log_level: str = "INFO") -> falcon
     api = falcon.API()
 
     if not controller:
-        controller = Controller()
+        controller = Controller(config=config)
 
     version_resource = VersionResource()
     api.add_route("/version", version_resource)
 
-    sensors = Sensors()
+    sensors = Sensors(config=config)
     sensors_resource = SensorsResource(sensors=sensors)
     api.add_route("/sensors", sensors_resource)
     api.add_route("/sensors/{number}", sensors_resource)
 
-    db = DataStore()
+    db = DataStore(config=config)
     events_resource = EventsResource(event_store=EventStore(db=db), sensors=sensors, controller=controller)
     api.add_route("/events", events_resource)
     api.add_route("/events/{uid}", events_resource)

@@ -3,6 +3,7 @@ import datetime
 import json
 import logging
 import re
+from configparser import ConfigParser
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -113,13 +114,13 @@ class EventParser:
 
     def __init__(
         self,
-        config_path: Path = None,
+        config: ConfigParser = None,
         src_dir: Path = None,
         dst_dir: Path = None,
         move_files: bool = True,
     ) -> None:
 
-        self.cfg = ConfigLoader(config_path).config if config_path else ConfigLoader().config
+        self.cfg = config or ConfigLoader().config
         self.src_dir = src_dir or Path(self.cfg.get("events", "src_dir"))
         self.dst_dir = dst_dir or Path(self.cfg.get("events", "dst_dir"))
 

@@ -6,8 +6,8 @@ from simon_says.sensors import Sensor, Sensors, SensorState
 
 
 @pytest.fixture
-def test_sensors(test_config_path):
-    return Sensors(config_path=test_config_path)
+def test_sensors(test_config):
+    return Sensors(config=test_config)
 
 
 @pytest.fixture

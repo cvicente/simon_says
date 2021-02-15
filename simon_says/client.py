@@ -13,24 +13,31 @@ class Client(object):
         self._url = url
         self._session = requests.Session()
 
+    def get_version(self, timeout: int = DEFAULT_TIMEOUT):
+        r = self._session.get(f"{self._url}/version", timeout=timeout)
+        if r.status_code == 200:
+            return r.json()
+        else:
+            raise RuntimeError(f"Error code: {r.status_code}, content: {r.text}")
+
     def arm_home(self, timeout: int = DEFAULT_TIMEOUT) -> str:
         r = self._session.post(f"{self._url}/control", json={"action": "arm_home"}, timeout=timeout)
         if r.status_code == 202:
-            return r.text
+            return r.json()
         else:
             raise RuntimeError(f"Error code: {r.status_code}, content: {r.text}")
 
     def arm_away(self, timeout: int = DEFAULT_TIMEOUT) -> str:
         r = self._session.post(f"{self._url}/control", json={"action": "arm_away"}, timeout=timeout)
         if r.status_code == 202:
-            return r.text
+            return r.json()
         else:
             raise RuntimeError(f"Error code: {r.status_code}, content: {r.text}")
 
     def disarm(self, timeout: int = DEFAULT_TIMEOUT) -> str:
         r = self._session.post(f"{self._url}/control", json={"action": "disarm"}, timeout=timeout)
         if r.status_code == 202:
-            return r.text
+            return r.json()
         else:
             raise RuntimeError(f"Error code: {r.status_code}, content: {r.text}")
 
@@ -38,12 +45,12 @@ class Client(object):
         """ Add a single event """
         r = self._session.post(f"{self._url}/events", json=data, timeout=timeout)
         if r.status_code == 201:
-            return r.text
+            return r.json()
         else:
             raise RuntimeError(f"Error code: {r.status_code}, content: {r.text}")
 
     def get_events(self, timeout: int = DEFAULT_TIMEOUT) -> List[Dict[str, Any]]:
-        """ Get all events in queue """
+        """ Get all events """
         r = self._session.get(f"{self._url}/events", timeout=timeout)
         if r.status_code == 200:
             data = r.json()
@@ -54,6 +61,24 @@ class Client(object):
     def get_event(self, uid: str, timeout: int = DEFAULT_TIMEOUT) -> Dict[str, Any]:
         """ Get a single event given its UID """
         r = self._session.get(f"{self._url}/events/{uid}", timeout=timeout)
+        if r.status_code == 200:
+            data = r.json()
+            return data
+        else:
+            raise RuntimeError(f"Error code: {r.status_code}, content: {r.text}")
+
+    def get_sensors(self, timeout: int = DEFAULT_TIMEOUT) -> List[Dict[str, Any]]:
+        """ Get all sensors """
+        r = self._session.get(f"{self._url}/sensors", timeout=timeout)
+        if r.status_code == 200:
+            data = r.json()
+            return data
+        else:
+            raise RuntimeError(f"Error code: {r.status_code}, content: {r.text}")
+
+    def get_sensor(self, number: str, timeout: int = DEFAULT_TIMEOUT) -> Dict[str, Any]:
+        """ Get a single sensor given its number """
+        r = self._session.get(f"{self._url}/sensors/{number}", timeout=timeout)
         if r.status_code == 200:
             data = r.json()
             return data

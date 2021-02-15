@@ -1,5 +1,5 @@
 import logging
-from pathlib import Path
+from configparser import ConfigParser
 from typing import List
 
 import redis
@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 class DataStore:
     """ Persistence class """
 
-    def __init__(self, config_path: Path = None) -> None:
-        self.cfg = ConfigLoader(config_path).config if config_path else ConfigLoader().config
+    def __init__(self, config: ConfigParser = None) -> None:
+        self.cfg = config or ConfigLoader().config
         redis_host = self.cfg.get("data_store", "redis_host")
         redis_port = self.cfg.get("data_store", "redis_port")
         logger.debug("Instantiating Redis client at %s:%s", redis_host, redis_port)
