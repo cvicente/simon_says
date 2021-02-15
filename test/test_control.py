@@ -1,5 +1,3 @@
-
-
 def test_build_dtmf(test_controller):
     dtmf = test_controller._build_dtmf_sequence("arm_doors_and_windows_no_delay")
     assert dtmf == "ww1234w2w2w9"

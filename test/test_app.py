@@ -10,8 +10,8 @@ pytestmark = pytest.mark.skipif(not redis_present(), reason="redis not present")
 
 
 @pytest.fixture
-def client(test_controller):
-    app = create_app(controller=test_controller)
+def client(test_controller, test_config):
+    app = create_app(config=test_config, controller=test_controller)
     return testing.TestClient(app)
 
 
@@ -61,7 +61,7 @@ def test_controller_disarm(client, tmp_path):
 def test_get_sensors(client):
     response = client.simulate_get("/sensors")
     result = response.json
-    assert len(result) == 1
+    assert len(result) == 5
 
 
 def test_get_one_sensor(client):

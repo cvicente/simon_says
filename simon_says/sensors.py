@@ -1,7 +1,7 @@
 import json
 import logging
+from configparser import ConfigParser
 from enum import Enum
-from pathlib import Path
 from typing import Any, Dict, List
 
 from pydantic import BaseModel
@@ -26,7 +26,7 @@ class Sensor(BaseModel):
 
     def to_dict(self) -> Dict[str, Any]:
         """ Convert to Dict """
-        res = self.__dict__
+        res = self.__dict__.copy()
         res["state"] = self.state.value
         return res
 
@@ -41,9 +41,9 @@ class Sensors:
     These correspond to "zones" in the Ademco nomenclature.
     """
 
-    def __init__(self, config_path: Path = None) -> None:
+    def __init__(self, config: ConfigParser = None) -> None:
         self._sensors_by_number = {}
-        self.cfg = ConfigLoader(config_path).config if config_path else ConfigLoader().config
+        self.cfg = config or ConfigLoader().config
         self._load_from_config()
 
     def add(self, sensor: Sensor) -> None:
