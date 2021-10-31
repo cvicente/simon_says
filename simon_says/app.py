@@ -40,10 +40,10 @@ class EventsResource:
         if uid:
             logger.info("Getting event with uid %s", uid)
 
-            try:
-                e = self.event_store.get(uid=uid)
+            e = self.event_store.get(uid=uid)
+            if e:
                 resp.body = e.to_json()
-            except KeyError:
+            else:
                 logger.error("uid %s not found", uid)
                 raise falcon.HTTPNotFound()
 
@@ -87,19 +87,24 @@ class ControllerResource:
             logger.error("Missing required parameter: 'action'")
             raise falcon.HTTPBadRequest()
 
+        if "access_code" not in data:
+            logger.error("Missing required parameter: 'access_code'")
+            raise falcon.HTTPBadRequest()
+
         action = data["action"]
+        code = data["access_code"]
         try:
             logger.info("Sending command %s", action)
             if action == "disarm":
-                self.controller.disarm()
+                self.controller.disarm(code)
                 self.sensors.clear_all()
             elif action == "arm_home":
-                self.controller.arm_home()
+                self.controller.arm_home(code)
             elif action == "arm_away":
-                self.controller.arm_away()
+                self.controller.arm_away(code)
             else:
                 # Pass other less common actions
-                self.controller.send_command(action)
+                self.controller.send_command(action, code)
 
         except Exception as err:
             logger.error("Error sending action to Alarm: %s", err)

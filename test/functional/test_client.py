@@ -5,7 +5,13 @@ from simon_says.app import create_app
 from simon_says.client import Client
 from simon_says.helpers import redis_present
 
+#
+# To run a redis instance locally for testing:
+#   docker run --name my-redis -p 6379:6379 --restart always --detach redis
+#
 pytestmark = pytest.mark.skipif(not redis_present(), reason="redis not present")
+
+CODE = "1234"
 
 
 @pytest.fixture
@@ -40,17 +46,17 @@ def test_client_add_and_get_events(test_client, test_parsed_events):
 
 
 def test_client_arm_home(test_client):
-    res = test_client.arm_home()
+    res = test_client.arm_home(access_code=CODE)
     assert res["result"] == "OK"
 
 
 def test_client_arm_away(test_client):
-    res = test_client.arm_away()
+    res = test_client.arm_away(access_code=CODE)
     assert res["result"] == "OK"
 
 
 def test_client_disarm(test_client):
-    res = test_client.disarm()
+    res = test_client.disarm(access_code=CODE)
     assert res["result"] == "OK"
 
 
