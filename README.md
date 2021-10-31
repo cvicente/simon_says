@@ -144,9 +144,10 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Alarm Schedule")
     parser.add_argument(
         "-a", "--action", type=str, help="Action to execute", required=True, choices=["arm", "disarm"],
-        "-c", "--code", type=str, help="Access Code", required=True
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "-c", "--code", type=str, help="Acccess code", required=True
+    )    return parser.parse_args()
 
 
 if __name__ == "__main__":
