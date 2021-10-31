@@ -192,6 +192,7 @@ class EventParser:
                     return event_data
 
         logger.warning("No events found in file %s", path)
+        return None
 
     def move_file(self, src: Path) -> None:
         """ Move event file to processed folder """

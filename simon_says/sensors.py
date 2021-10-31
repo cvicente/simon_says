@@ -42,7 +42,7 @@ class Sensors:
     """
 
     def __init__(self, config: ConfigParser = None) -> None:
-        self._sensors_by_number = {}
+        self._sensors_by_number: Dict[int, Sensor] = {}
         self.cfg = config or ConfigLoader().config
         self._load_from_config()
 

@@ -20,26 +20,23 @@ class Client(object):
         else:
             raise RuntimeError(f"Error code: {r.status_code}, content: {r.text}")
 
-    def arm_home(self, timeout: int = DEFAULT_TIMEOUT) -> str:
-        r = self._session.post(f"{self._url}/control", json={"action": "arm_home"}, timeout=timeout)
+    def _action(self, action: str, access_code: str, timeout: int = DEFAULT_TIMEOUT) -> str:
+        r = self._session.post(
+            f"{self._url}/control", json={"action": action, "access_code": access_code}, timeout=timeout
+        )
         if r.status_code == 202:
             return r.json()
         else:
             raise RuntimeError(f"Error code: {r.status_code}, content: {r.text}")
 
-    def arm_away(self, timeout: int = DEFAULT_TIMEOUT) -> str:
-        r = self._session.post(f"{self._url}/control", json={"action": "arm_away"}, timeout=timeout)
-        if r.status_code == 202:
-            return r.json()
-        else:
-            raise RuntimeError(f"Error code: {r.status_code}, content: {r.text}")
+    def arm_home(self, access_code: str, timeout: int = DEFAULT_TIMEOUT) -> str:
+        return self._action(timeout=timeout, action="arm_home", access_code=access_code)
 
-    def disarm(self, timeout: int = DEFAULT_TIMEOUT) -> str:
-        r = self._session.post(f"{self._url}/control", json={"action": "disarm"}, timeout=timeout)
-        if r.status_code == 202:
-            return r.json()
-        else:
-            raise RuntimeError(f"Error code: {r.status_code}, content: {r.text}")
+    def arm_away(self, access_code: str, timeout: int = DEFAULT_TIMEOUT) -> str:
+        return self._action(timeout=timeout, action="arm_away", access_code=access_code)
+
+    def disarm(self, access_code: str, timeout: int = DEFAULT_TIMEOUT) -> str:
+        return self._action(timeout=timeout, action="disarm", access_code=access_code)
 
     def add_event(self, data: Dict, timeout: int = DEFAULT_TIMEOUT) -> str:
         """ Add a single event """

@@ -48,7 +48,7 @@ def test_post_and_get_events(client, test_parsed_events, test_db):
 
 
 def test_controller_disarm(client, tmp_path):
-    data = {"action": "disarm"}
+    data = {"action": "disarm", "access_code": "1234"}
     resp = client.simulate_post("/control", json=data)
     assert resp.status == falcon.HTTP_ACCEPTED
 

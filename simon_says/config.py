@@ -17,8 +17,6 @@ DEFAULTS = {
         "dst_dir": "/var/spool/asterisk/alarm_events_processed",
     },
     "control": {
-        # Default alarm access code
-        "access_code": "1234",
         # SIP extension that will receive the commands via Asterisk
         "extension": "100",
         # How long to wait for the alarm to answer
@@ -45,7 +43,7 @@ class ConfigLoader:
         self.load_from_file(cfg_path)
 
     def load_defaults(self) -> None:
-        self.config.read_dict(DEFAULTS)
+        self.config.read_dict(DEFAULTS)  # type: ignore
 
     def load_from_file(self, cfg_path) -> None:
         """ Load config file """

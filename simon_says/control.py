@@ -28,7 +28,6 @@ class Controller:
     def __init__(
         self,
         config: ConfigParser = None,
-        access_code: str = None,
         extension: str = None,
         wait_time: int = None,
         retry_time: int = None,
@@ -38,7 +37,6 @@ class Controller:
     ) -> None:
         self.cfg = config or ConfigLoader().config
         self._state_db_key = "armed_state"
-        self.access_code = access_code or self.cfg.get("control", "access_code")
         self.extension = extension or self.cfg.get("control", "extension")
         self.wait_time = wait_time or int(self.cfg.get("control", "wait_time"))
         self.retry_time = retry_time or int(self.cfg.get("control", "retry_time"))
@@ -49,7 +47,8 @@ class Controller:
         if not self.spool_dir.is_dir():
             raise ValueError(f"spool_dir {self.spool_dir} is not a valid directory")
 
-    def _build_dtmf_sequence(self, action: str) -> str:
+    @staticmethod
+    def _build_dtmf_sequence(action: str, access_code: str) -> str:
         """
         Build DTMF tone sequence to send to alarm
         """
@@ -61,7 +60,7 @@ class Controller:
         # For more details, see https://wiki.asterisk.org/wiki/display/AST/Application_SendDTMF
 
         # Wait before sending the access code
-        sections = ["w", self.access_code]
+        sections = ["w", access_code]
 
         # Add requested action
         sections.extend(ACTION_TO_DTMF[action])
@@ -74,14 +73,14 @@ class Controller:
 
         return result
 
-    def send_command(self, action: str) -> None:
+    def send_command(self, action: str, access_code: str) -> None:
         """ Send control sequence via Asterisk call file """
 
         call = Call(
             f"SIP/{self.extension}", wait_time=self.wait_time, retry_time=self.retry_time, max_retries=self.max_retries
         )
 
-        seq = self._build_dtmf_sequence(action)
+        seq = self._build_dtmf_sequence(action, access_code)
 
         logger.debug("Sending action '%s' (DTMF: '%s') to alarm", action, seq)
 
@@ -94,17 +93,17 @@ class Controller:
         c = CallFile(call, action, **callfile_args)
         c.spool()
 
-    def disarm(self) -> None:
+    def disarm(self, access_code: str) -> None:
         """ Disarm """
 
-        self.send_command("disarm")
+        self.send_command("disarm", access_code)
 
-    def arm_home(self) -> None:
+    def arm_home(self, access_code: str) -> None:
         """ Arm while at home """
 
-        self.send_command("arm_doors_and_windows_no_delay")
+        self.send_command("arm_doors_and_windows_no_delay", access_code)
 
-    def arm_away(self) -> None:
+    def arm_away(self, access_code: str) -> None:
         """ Arm when going away """
 
-        self.send_command("arm_doors_and_windows_and_motion_sensors")
+        self.send_command("arm_doors_and_windows_and_motion_sensors", access_code)

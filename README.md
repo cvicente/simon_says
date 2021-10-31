@@ -139,12 +139,12 @@ Here is a short script that can be used to schedule arming/disarming the alarm u
 from simon_says.client import Client
 import argparse
 
-
 def parse_args() -> argparse.Namespace:
     """ Parse command line arguments """
     parser = argparse.ArgumentParser(description="Alarm Schedule")
     parser.add_argument(
-        "-a", "--action", type=str, help="Action to execute", required=True, choices=["arm", "disarm"]
+        "-a", "--action", type=str, help="Action to execute", required=True, choices=["arm", "disarm"],
+        "-c", "--code", type=str, help="Access Code", required=True
     )
     return parser.parse_args()
 
@@ -156,9 +156,9 @@ if __name__ == "__main__":
     client = Client(url="http://localhost:8000")
 
     if args.action == "arm":
-        client.arm_home()
+        client.arm_home(args.code)
     elif args.action == "disarm":
-        client.disarm()
+        client.disarm(args.code)
 ```
 
 And the corresponding cron jobs:
